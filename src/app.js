@@ -73,7 +73,7 @@ app.post("/messages", async (req, res) => {
   const messageSchema = joi.object({
     to: joi.string().required(),
     text: joi.string().required(),
-    type: joi.valid("message", "private_message"),
+    type: joi.valid("message", "private_message").required(),
   });
   const validation = messageSchema.validate(message, { abortEarly: false });
 
@@ -105,6 +105,12 @@ app.post("/messages", async (req, res) => {
 app.get("/messages", async (req, res) => {
   const user = req.headers.user;
   const limit = req.query.limit;
+  const limitSchema = joi.number().integer().greater(0);
+  const validation = limitSchema.validate(limit, { abortEarly: false });
+
+  if (validation.error) {
+    return res.sendStatus(422);
+  }
 
   try {
     if (limit) {
