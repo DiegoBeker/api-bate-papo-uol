@@ -27,10 +27,7 @@ app.post("/participants", async (req, res) => {
   });
   const validation = userSchema.validate(req.body, { abortEarly: false });
 
-  if (validation.error) {
-    const errors = validation.error.details.map((detail) => detail.message);
-    return res.sendStatus(422);
-  }
+  if (validation.error) return res.sendStatus(422);
 
   try {
     const participantExists = await db
@@ -108,9 +105,7 @@ app.get("/messages", async (req, res) => {
   const limitSchema = joi.number().integer().greater(0);
   const validation = limitSchema.validate(limit, { abortEarly: false });
 
-  if (validation.error) {
-    return res.sendStatus(422);
-  }
+  if (validation.error) return res.sendStatus(422);
 
   try {
     if (limit) {
@@ -126,6 +121,32 @@ app.get("/messages", async (req, res) => {
       .find({ $or: [{ to: user }, { from: user }, { to: "Todos" }] })
       .toArray();
     res.send(messages);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.post("/status", async (req, res) => {
+  const user = req.headers.user;
+
+  if (!user) res.sendStatus(404);
+
+  try {
+    const participantExists = await db
+      .collection("participants")
+      .findOne({ name: user });
+
+    if (!participantExists) return res.sendStatus(404);
+    console.log(participantExists);
+    const editedParticipant = { ...participantExists };
+    editedParticipant.lastStatus = Date.now();
+    console.log(editedParticipant);
+
+    const result = await db
+      .collection("participants")
+      .updateOne({ _id: participantExists._id }, { $set: editedParticipant });
+
+    res.sendStatus(200);
   } catch (error) {
     res.status(500).send(error.message);
   }
