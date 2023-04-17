@@ -4,6 +4,7 @@ import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import dayjs from "dayjs";
 import joi from "joi";
+import { stripHtml } from "string-strip-html";
 
 const app = express();
 
@@ -29,19 +30,21 @@ app.post("/participants", async (req, res) => {
 
   if (validation.error) return res.sendStatus(422);
 
+  const name = stripHtml(req.body.name).result.trim();
+
   try {
     const participantExists = await db
       .collection("participants")
-      .findOne({ name: req.body.name });
+      .findOne({ name: name });
 
     if (participantExists) return res.sendStatus(409);
 
     await db
       .collection("participants")
-      .insertOne({ name: req.body.name, lastStatus: Date.now() });
+      .insertOne({ name: name, lastStatus: Date.now() });
 
     await db.collection("messages").insertOne({
-      from: req.body.name,
+      from: name,
       to: "Todos",
       text: "entra na sala...",
       type: "status",
@@ -79,6 +82,12 @@ app.post("/messages", async (req, res) => {
     return res.sendStatus(422);
   }
 
+  const cleansedMessage = {
+    to: stripHtml(message.to).result.trim(),
+    text: stripHtml(message.text).result.trim(),
+    type: message.type,
+  };
+
   try {
     const participantExists = await db
       .collection("participants")
@@ -88,9 +97,9 @@ app.post("/messages", async (req, res) => {
 
     await db.collection("messages").insertOne({
       from: user,
-      to: message.to,
-      text: message.text,
-      type: message.type,
+      to: cleansedMessage.to,
+      text: cleansedMessage.text,
+      type: cleansedMessage.type,
       time: time,
     });
     res.sendStatus(201);
@@ -228,6 +237,7 @@ setInterval(async () => {
       });
     });
   } catch (error) {
+    console.log("Aqui");
     console.log(error.message);
   }
 }, 15000);
