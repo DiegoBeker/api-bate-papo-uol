@@ -225,18 +225,17 @@ setInterval(async () => {
       .collection("participants")
       .find({ lastStatus: { $lt: time } })
       .toArray();
-    if (search) {
-      search.forEach(async (participant) => {
-        await db.collection("participants").deleteOne({ _id: participant._id });
-        await db.collection("messages").insertOne({
-          from: participant.name,
-          to: "Todos",
-          text: "sai da sala...",
-          type: "status",
-          time: dayjs().format("HH:mm:ss"),
-        });
+
+    search.forEach(async (participant) => {
+      await db.collection("participants").deleteOne({ _id: participant._id });
+      await db.collection("messages").insertOne({
+        from: participant.name,
+        to: "Todos",
+        text: "sai da sala...",
+        type: "status",
+        time: dayjs().format("HH:mm:ss"),
       });
-    }
+    });
   } catch (error) {
     console.log("Aqui");
     console.log(error.message);
