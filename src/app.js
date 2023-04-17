@@ -172,6 +172,39 @@ app.delete("/messages/:id", async (req, res) => {
   }
 });
 
+app.put("/messages/:id", async (req, res) => {
+  const { id } = req.params;
+  const user = req.headers.user;
+  const message = req.body;
+  const messageSchema = joi.object({
+    to: joi.string().required(),
+    text: joi.string().required(),
+    type: joi.valid("message", "private_message").required(),
+  });
+  const validation = messageSchema.validate(message, { abortEarly: false });
+  const participantExists = await db
+    .collection("participants")
+    .findOne({ name: user });
+
+  if (validation.error || !participantExists) return res.sendStatus(422);
+
+  const messageExists = await db
+    .collection("messages")
+    .findOne({ _id: new ObjectId(id) });
+
+  if (!messageExists) return res.sendStatus(404);
+
+  if (messageExists.from !== user) return res.sendStatus(401);
+
+  await db
+    .collection("messages")
+    .updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { to: message.to, text: message.text, type: message.type } }
+    );
+  res.sendStatus(200);
+});
+
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
 
