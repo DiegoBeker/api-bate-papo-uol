@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import dayjs from "dayjs";
 import joi from "joi";
@@ -147,6 +147,26 @@ app.post("/status", async (req, res) => {
       .updateOne({ _id: participantExists._id }, { $set: editedParticipant });
 
     res.sendStatus(200);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.delete("/messages/:id", async (req, res) => {
+  const { id } = req.params;
+  const user = req.headers.user;
+  try {
+    const message = await db
+      .collection("messages")
+      .findOne({ _id: new ObjectId(id) });
+
+    if (!message) return res.sendStatus(404);
+
+    if (message.from !== user) return res.sendStatus(401);
+
+    await db.collection("messages").deleteOne({ _id: new ObjectId(id) });
+
+    res.sendStatus(204);
   } catch (error) {
     res.status(500).send(error.message);
   }
